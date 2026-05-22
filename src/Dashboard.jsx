@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from './supabase';
-import { Users, HelpCircle, ShieldCheck, ShieldAlert } from 'lucide-react';
+import { Users, HelpCircle, Search, ShieldCheck } from 'lucide-react';
 
-// --- IMPORTACIONES DE COMPONENTES ---
 import Navbar from './components/Navbar';
 import InventariTab from './components/InventariTab';
 import ConfigTab from './components/ConfigTab';
@@ -28,6 +27,12 @@ export default function Dashboard({ session }) {
   const [selectedIds, setSelectedIds] = useState([]);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [bulkData, setBulkData] = useState({ camp: 'estat', valor: '' });
+
+  // --- ESTATS PER L'HISTORIAL ---
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [historyData, setHistoryData] = useState([]);
+  const [historySace, setHistorySace] = useState('');
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
   const [theme, setTheme] = useState(() => {
     if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) return 'dark';
@@ -117,6 +122,17 @@ export default function Dashboard({ session }) {
   const obrirModalNou = () => { setFormData(valorsInicialsForm); setEditingId(null); setIsModalOpen(true); };
   const obrirModalEdicio = (ord) => { setFormData({ sace: ord.sace, marca: ord.marca, model: ord.model, estat: ord.estat, ubicacio: ord.ubicacio, observacions: ord.observacions || '', nom_alumne: ord.nom_alumne || '', classe_alumne: ord.classe_alumne || '' }); setEditingId(ord.id); setIsModalOpen(true); };
 
+  // --- FUNCIÓ PER OBRIR L'HISTORIAL ---
+  const obrirHistorial = async (id, sace) => {
+    setHistorySace(sace);
+    setHistoryData([]);
+    setIsHistoryModalOpen(true);
+    setLoadingHistory(true);
+    const { data } = await supabase.from('historial_ordinadors').select('*').eq('ordinador_id', id).order('data_canvi', { ascending: false });
+    if (data) setHistoryData(data);
+    setLoadingHistory(false);
+  };
+
   const handleDesarPortatil = async (e) => {
     e.preventDefault();
     if (editingId) { await supabase.from('ordinadors').update(formData).eq('id', editingId); }
@@ -152,12 +168,12 @@ export default function Dashboard({ session }) {
         {activeTab === 'inventari' && (
           <InventariTab 
             role={role} loading={loading} ordinadors={ordinadorsFiltrats} searchTerm={searchTerm} setSearchTerm={setSearchTerm} searchField={searchField} setSearchField={setSearchField}
-            selectedIds={selectedIds} setSelectedIds={setSelectedIds} setIsBulkModalOpen={setIsBulkModalOpen} handleBulkDelete={handleBulkDelete} obrirModalNou={obrirModalNou} obrirModalEdicio={obrirModalEdicio} handleEsborrarPortatil={handleEsborrarPortatil} formatData={formatData} getBadgeColor={getBadgeColor}
+            selectedIds={selectedIds} setSelectedIds={setSelectedIds} setIsBulkModalOpen={setIsBulkModalOpen} handleBulkDelete={handleBulkDelete} obrirModalNou={obrirModalNou} obrirModalEdicio={obrirModalEdicio} handleEsborrarPortatil={handleEsborrarPortatil} formatData={formatData} getBadgeColor={getBadgeColor} obrirHistorial={obrirHistorial}
           />
         )}
         {activeTab === 'configuracio' && <ConfigTab handleAfegirOpcio={handleAfegirOpcio} novaOpcio={novaOpcio} setNovaOpcio={setNovaOpcio} opcions={opcions} handleEsborrarOpcio={handleEsborrarOpcio} />}
         
-        {/* --- PESTANYA USUARIS (ARA SÍ AMB ESTILS COMPLETATS) --- */}
+        {/* --- PESTANYA USUARIS --- */}
         {activeTab === 'usuaris' && role === 'admin' && (
           <div className="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors">
             <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-6 border-b dark:border-gray-700 pb-2 flex items-center gap-2"><Users className="text-blue-500"/> Gestió d'Usuaris</h2>
@@ -175,8 +191,7 @@ export default function Dashboard({ session }) {
                     <tr key={usuari.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                       <td className="p-4 font-medium text-gray-900 dark:text-white">{usuari.email || 'Correu no sincronitzat'}</td>
                       <td className="p-4">
-                        <span className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 w-fit ${usuari.rol === 'admin' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' : 'bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-200'}`}>
-                          {usuari.rol === 'admin' ? <ShieldCheck className="w-3 h-3"/> : <ShieldAlert className="w-3 h-3"/>}
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold w-fit ${usuari.rol === 'admin' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' : 'bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-200'}`}>
                           {usuari.rol.toUpperCase()}
                         </span>
                       </td>
@@ -185,7 +200,7 @@ export default function Dashboard({ session }) {
                           value={usuari.rol} 
                           onChange={(e) => handleCanviarRol(usuari.id, e.target.value)} 
                           disabled={usuari.id === session.user.id} 
-                          className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-2 focus:ring-blue-500 outline-none block w-full sm:w-auto px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-colors cursor-pointer"
+                          className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg outline-none px-3 py-2 disabled:opacity-50"
                         >
                           <option value="visitant">Fer Visitant</option>
                           <option value="admin">Fer Administrador</option>
@@ -199,14 +214,46 @@ export default function Dashboard({ session }) {
           </div>
         )}
 
-        {/* --- PESTANYA AJUDA --- */}
+        {/* --- PESTANYA AJUDA (ARA COMPLETÍSSIMA!) --- */}
         {activeTab === 'ajuda' && (
           <div className="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors max-w-4xl mx-auto">
             <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-6 border-b dark:border-gray-700 pb-2 flex items-center gap-2">
               <HelpCircle className="text-blue-500" /> Manual d'Usuari del Portal
             </h2>
+            
             <div className="space-y-8 text-gray-600 dark:text-gray-300">
               <p className="text-lg">Benvingut/da al Portal de Coordinació Digital de l'<strong>Institut Miquel Biada</strong>.</p>
+              
+              <section className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-xl border border-blue-100 dark:border-blue-800/50">
+                <h3 className="text-xl font-bold text-blue-800 dark:text-blue-300 mb-3 flex items-center gap-2"><Search className="w-5 h-5"/> Per a tot el professorat (Rol: Visitant)</h3>
+                <p className="mb-2">Com a professor, la teva eina principal és la pestanya <strong>Inventari</strong>.</p>
+                <ul className="list-disc pl-5 space-y-2">
+                  <li>Pots utilitzar la <strong>barra de cerca</strong> per trobar ràpidament un ordinador pel número SACE, la marca o el nom de l'alumne.</li>
+                  <li>Utilitza el desplegable de l'esquerra del buscador per filtrar exactament per un camp (ex: data d'actualització).</li>
+                  <li>Podràs veure d'un cop d'ull si un equip està Operatiu (Verd), té defectes (Groc) o No funciona (Vermell).</li>
+                </ul>
+              </section>
+
+              {role === 'admin' && (
+                <section className="space-y-6">
+                  <h3 className="text-xl font-bold text-purple-700 dark:text-purple-400 mb-3 flex items-center gap-2 border-b dark:border-gray-700 pb-2"><ShieldCheck className="w-5 h-5"/> Eines exclusives de Coordinació (Rol: Admin)</h3>
+                  
+                  <div className="bg-purple-50 dark:bg-purple-900/20 p-6 rounded-xl border border-purple-100 dark:border-purple-800/50">
+                    <h4 className="font-bold text-purple-800 dark:text-purple-300 mb-2">Com editar múltiples equips de cop?</h4>
+                    <p>A l'esquerra de cada portàtil veuràs una casella de selecció. Marca tots els equips que vulguis. Apareixerà un botó lila per canviar l'estat o ubicació de tots de cop. Això és súper útil per moure 20 portàtils a un altre armari d'un sol clic!</p>
+                  </div>
+
+                  <div>
+                    <h4 className="font-bold text-gray-800 dark:text-gray-200 mb-2">Com assignar un ordinador a un alumne?</h4>
+                    <p>A l'editar o afegir un portàtil, si canvies el seu estat a <strong>"Assignat"</strong>, s'obriran automàticament dos camps nous per escriure el nom de l'alumne i la seva classe.</p>
+                  </div>
+
+                  <div>
+                    <h4 className="font-bold text-gray-800 dark:text-gray-200 mb-2">Pestanya "Configuració"</h4>
+                    <p className="mb-2">Afegeix noves marques, estats o ubicacions (aules) perquè apareguin als desplegables del formulari.</p>
+                  </div>
+                </section>
+              )}
             </div>
           </div>
         )}
@@ -215,6 +262,7 @@ export default function Dashboard({ session }) {
       <Modals 
         isBulkModalOpen={isBulkModalOpen} setIsBulkModalOpen={setIsBulkModalOpen} selectedIds={selectedIds} bulkData={bulkData} setBulkData={setBulkData} handleBulkUpdate={handleBulkUpdate} opcions={opcions}
         isModalOpen={isModalOpen} setIsModalOpen={setIsModalOpen} editingId={editingId} formData={formData} setFormData={setFormData} handleDesarPortatil={handleDesarPortatil}
+        isHistoryModalOpen={isHistoryModalOpen} setIsHistoryModalOpen={setIsHistoryModalOpen} historyData={historyData} historySace={historySace} loadingHistory={loadingHistory}
       />
     </div>
   );

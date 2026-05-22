@@ -1,12 +1,12 @@
-import { X, CheckSquare } from 'lucide-react';
+import { X, CheckSquare, History } from 'lucide-react';
 
 export default function Modals({
   isBulkModalOpen, setIsBulkModalOpen, selectedIds, bulkData, setBulkData, handleBulkUpdate, opcions,
-  isModalOpen, setIsModalOpen, editingId, formData, setFormData, handleDesarPortatil
+  isModalOpen, setIsModalOpen, editingId, formData, setFormData, handleDesarPortatil,
+  isHistoryModalOpen, setIsHistoryModalOpen, historyData, historySace, loadingHistory
 }) {
   return (
     <>
-      {/* --- MODAL EDICIÓ EN LOTE (BULK EDIT) --- */}
       {isBulkModalOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-sm overflow-hidden border dark:border-gray-700">
@@ -38,7 +38,6 @@ export default function Modals({
         </div>
       )}
 
-      {/* --- MODAL INDIVIDUAL --- */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-lg overflow-hidden border dark:border-gray-700">
@@ -102,6 +101,43 @@ export default function Modals({
                 <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium shadow-sm">{editingId ? 'Guardar Canvis' : 'Guardar'}</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* --- NOU MODAL: HISTORIAL DE CANVIS --- */}
+      {isHistoryModalOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-lg overflow-hidden border dark:border-gray-700 flex flex-col max-h-[80vh]">
+            <div className="flex justify-between items-center p-6 border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+              <h2 className="text-xl font-bold dark:text-white flex items-center gap-2"><History className="w-5 h-5 text-blue-500"/> Historial SACE: {historySace}</h2>
+              <button onClick={() => setIsHistoryModalOpen(false)} className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"><X className="w-6 h-6"/></button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto flex-1 space-y-4">
+              {loadingHistory ? (
+                 <p className="text-center text-gray-500 animate-pulse">Cercant arxius...</p>
+              ) : historyData.length === 0 ? (
+                 <p className="text-center text-gray-500">Aquest equip encara no té canvis registrats a la base de dades.</p>
+              ) : (
+                 <div className="space-y-4">
+                   {historyData.map(hist => (
+                     <div key={hist.id} className="border-l-4 border-blue-500 dark:border-blue-600 pl-4 py-1">
+                       <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">
+                         {new Date(hist.data_canvi).toLocaleString('ca-ES', { dateStyle: 'short', timeStyle: 'short' })} h
+                       </p>
+                       <p className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed">
+                         {hist.detall}
+                       </p>
+                     </div>
+                   ))}
+                 </div>
+              )}
+            </div>
+            
+            <div className="p-4 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex justify-end">
+              <button onClick={() => setIsHistoryModalOpen(false)} className="px-4 py-2 bg-gray-200 text-gray-800 hover:bg-gray-300 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 rounded-lg font-medium transition-colors">Tancar Historial</button>
+            </div>
           </div>
         </div>
       )}
