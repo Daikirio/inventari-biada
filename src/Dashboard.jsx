@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from './supabase';
-import { Users, HelpCircle, Search, ShieldCheck, ShieldCheck as ShieldCheckIcon } from 'lucide-react';
+import { Users, HelpCircle, ShieldCheck, ShieldAlert } from 'lucide-react';
 
-// --- NUEVAS IMPORTACIONES DE ARCHIVOS COMPONENTES ---
+// --- IMPORTACIONES DE COMPONENTES ---
 import Navbar from './components/Navbar';
 import InventariTab from './components/InventariTab';
 import ConfigTab from './components/ConfigTab';
@@ -79,7 +79,6 @@ export default function Dashboard({ session }) {
     return 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300';
   };
 
-  // --- FILTRADO AVANZADO QUE MANDAMOS A LA TABLA ---
   const ordinadorsFiltrats = ordinadors.filter(ord => {
     if (!searchTerm) return true;
     const searchLower = searchTerm.toLowerCase();
@@ -157,27 +156,58 @@ export default function Dashboard({ session }) {
           />
         )}
         {activeTab === 'configuracio' && <ConfigTab handleAfegirOpcio={handleAfegirOpcio} novaOpcio={novaOpcio} setNovaOpcio={setNovaOpcio} opcions={opcions} handleEsborrarOpcio={handleEsborrarOpcio} />}
+        
+        {/* --- PESTANYA USUARIS (ARA SÍ AMB ESTILS COMPLETATS) --- */}
         {activeTab === 'usuaris' && role === 'admin' && (
-          <div className="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
-            <h2 className="text-2xl font-bold mb-4 flex items-center gap-2"><Users className="text-blue-500"/> Gestió d'Usuaris</h2>
-            <table className="w-full text-left">
-              <thead><tr className="bg-gray-50 dark:bg-gray-700 text-sm border-b">
-                <th className="p-4">Correu</th><th className="p-4">Rol</th><th className="p-4">Accions</th>
-              </tr></thead>
-              <tbody>{llistaUsuaris.map(u => (
-                <tr key={u.id} className="border-b">
-                  <td className="p-4">{u.email}</td>
-                  <td className="p-4"><span className="px-2 py-1 text-xs font-bold rounded-full bg-purple-100 text-purple-800">{u.rol}</span></td>
-                  <td className="p-4"><select value={u.rol} onChange={(e) => handleCanviarRol(u.id, e.target.value)} disabled={u.id === session.user.id} className="border p-1 rounded"><option value="visitant">Visitant</option><option value="admin">Admin</option></select></td>
-                </tr>
-              ))}</tbody>
-            </table>
+          <div className="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors">
+            <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-6 border-b dark:border-gray-700 pb-2 flex items-center gap-2"><Users className="text-blue-500"/> Gestió d'Usuaris</h2>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-sm tracking-wider border-b border-gray-200 dark:border-gray-600">
+                    <th className="p-4 font-semibold">Correu Electrònic</th>
+                    <th className="p-4 font-semibold">Rol Actual</th>
+                    <th className="p-4 font-semibold">Accions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                  {llistaUsuaris.map(usuari => (
+                    <tr key={usuari.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                      <td className="p-4 font-medium text-gray-900 dark:text-white">{usuari.email || 'Correu no sincronitzat'}</td>
+                      <td className="p-4">
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 w-fit ${usuari.rol === 'admin' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' : 'bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-200'}`}>
+                          {usuari.rol === 'admin' ? <ShieldCheck className="w-3 h-3"/> : <ShieldAlert className="w-3 h-3"/>}
+                          {usuari.rol.toUpperCase()}
+                        </span>
+                      </td>
+                      <td className="p-4">
+                        <select 
+                          value={usuari.rol} 
+                          onChange={(e) => handleCanviarRol(usuari.id, e.target.value)} 
+                          disabled={usuari.id === session.user.id} 
+                          className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-2 focus:ring-blue-500 outline-none block w-full sm:w-auto px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-colors cursor-pointer"
+                        >
+                          <option value="visitant">Fer Visitant</option>
+                          <option value="admin">Fer Administrador</option>
+                        </select>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
+
+        {/* --- PESTANYA AJUDA --- */}
         {activeTab === 'ajuda' && (
-          <div className="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 max-w-4xl mx-auto">
-            <h2 className="text-2xl font-bold mb-4 flex items-center gap-2"><HelpCircle className="text-blue-500" /> Manual d'Usuari</h2>
-            <p>Benvingut al Portal de Coordinació Digital de l'<strong>Institut Miquel Biada</strong>. Utilitza els desplegables per fer cerques de precisió.</p>
+          <div className="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors max-w-4xl mx-auto">
+            <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-6 border-b dark:border-gray-700 pb-2 flex items-center gap-2">
+              <HelpCircle className="text-blue-500" /> Manual d'Usuari del Portal
+            </h2>
+            <div className="space-y-8 text-gray-600 dark:text-gray-300">
+              <p className="text-lg">Benvingut/da al Portal de Coordinació Digital de l'<strong>Institut Miquel Biada</strong>.</p>
+            </div>
           </div>
         )}
       </main>
