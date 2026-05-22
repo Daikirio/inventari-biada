@@ -135,9 +135,30 @@ export default function Dashboard({ session }) {
 
   const handleDesarPortatil = async (e) => {
     e.preventDefault();
-    if (editingId) { await supabase.from('ordinadors').update(formData).eq('id', editingId); }
-    else { await supabase.from('ordinadors').insert([{ ...formData, creat_per: session.user.id }]); }
-    setIsModalOpen(false); carregarDades();
+    
+    // Recuperem la lògica de buidar alumne si l'estat no és Assignat
+    const dadesAGuardar = { ...formData };
+    if (dadesAGuardar.estat !== 'Assignat') {
+      dadesAGuardar.nom_alumne = null;
+      dadesAGuardar.classe_alumne = null;
+    }
+
+    if (editingId) { 
+      const { error } = await supabase.from('ordinadors').update(dadesAGuardar).eq('id', editingId); 
+      if (error) {
+        alert('❌ Error de base de dades al modificar: ' + error.message);
+        return; // Atura el procés perquè no es tanqui la finestra
+      }
+    } else { 
+      const { error } = await supabase.from('ordinadors').insert([{ ...dadesAGuardar, creat_per: session.user.id }]); 
+      if (error) {
+        alert('❌ Error de base de dades al crear: ' + error.message);
+        return;
+      }
+    }
+    
+    setIsModalOpen(false); 
+    carregarDades();
   };
 
   const handleEsborrarPortatil = async (id) => {
