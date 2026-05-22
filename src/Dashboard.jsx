@@ -265,7 +265,6 @@ export default function Dashboard({ session }) {
                   </td>
                   <td className="p-4 text-gray-500 dark:text-gray-400 text-sm max-w-xs truncate">{ord.observacions || '-'}</td>
                   
-                  {/* NOVA COLUMNA DE DATA */}
                   <td className="p-4 text-gray-500 dark:text-gray-400 text-sm whitespace-nowrap">
                     <Clock className="w-3 h-3 inline mr-1 opacity-50"/>
                     {formatData(ord.data_modificacio)}
@@ -352,9 +351,42 @@ export default function Dashboard({ session }) {
 
   const renderAjuda = () => (
     <div className="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors max-w-4xl mx-auto">
-      <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-6 border-b dark:border-gray-700 pb-2 flex items-center gap-2"><HelpCircle className="text-blue-500" /> Manual d'Usuari</h2>
-      <div className="space-y-6 text-gray-600 dark:text-gray-300">
-        <p>Benvingut al Portal de Coordinació Digital. Aquí pots buscar equips pel seu SACE, estat o fins i tot pel nom de l'alumne que el té assignat.</p>
+      <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-6 border-b dark:border-gray-700 pb-2 flex items-center gap-2">
+        <HelpCircle className="text-blue-500" /> Manual d'Usuari del Portal
+      </h2>
+      
+      <div className="space-y-8 text-gray-600 dark:text-gray-300">
+        <p className="text-lg">Benvingut/da al Portal de Coordinació Digital de l'<strong>Institut Miquel Biada</strong>.</p>
+        
+        <section className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-xl border border-blue-100 dark:border-blue-800/50">
+          <h3 className="text-xl font-bold text-blue-800 dark:text-blue-300 mb-3 flex items-center gap-2"><Search className="w-5 h-5"/> Per a tot el professorat (Rol: Visitant)</h3>
+          <p className="mb-2">Com a professor, la teva eina principal és la pestanya <strong>Inventari</strong>.</p>
+          <ul className="list-disc pl-5 space-y-2">
+            <li>Pots utilitzar la <strong>barra de cerca</strong> per trobar ràpidament un ordinador pel número SACE, la marca o el nom de l'alumne.</li>
+            <li>Podràs veure d'un cop d'ull si un equip està Operatiu (Verd), té defectes (Groc) o No funciona (Vermell).</li>
+          </ul>
+        </section>
+
+        {role === 'admin' && (
+          <section className="space-y-6">
+            <h3 className="text-xl font-bold text-purple-700 dark:text-purple-400 mb-3 flex items-center gap-2 border-b dark:border-gray-700 pb-2"><ShieldCheck className="w-5 h-5"/> Eines exclusives de Coordinació (Rol: Admin)</h3>
+            
+            <div className="bg-purple-50 dark:bg-purple-900/20 p-6 rounded-xl border border-purple-100 dark:border-purple-800/50">
+              <h4 className="font-bold text-purple-800 dark:text-purple-300 mb-2">Com editar múltiples equips de cop? (Novetat)</h4>
+              <p>A l'esquerra de cada portàtil veuràs una casella de selecció. Marca tots els equips que vulguis. Apareixerà un botó lila per canviar l'estat o ubicació de tots de cop. Això és súper útil per moure 20 portàtils a un altre armari d'un sol clic!</p>
+            </div>
+
+            <div>
+              <h4 className="font-bold text-gray-800 dark:text-gray-200 mb-2">Com assignar un ordinador a un alumne?</h4>
+              <p>A l'editar o afegir un portàtil, si canvies el seu estat a <strong>"Assignat"</strong>, s'obriran automàticament dos camps nous per escriure el nom de l'alumne i la seva classe.</p>
+            </div>
+
+            <div>
+              <h4 className="font-bold text-gray-800 dark:text-gray-200 mb-2">Pestanya "Configuració"</h4>
+              <p className="mb-2">Afegeix noves marques, estats o ubicacions (aules) perquè apareguin als desplegables.</p>
+            </div>
+          </section>
+        )}
       </div>
     </div>
   );
