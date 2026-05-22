@@ -92,7 +92,7 @@ export default function InventariTab({
         </div>
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto relative">
         <table className="w-full text-left border-collapse min-w-max">
           <thead>
             <tr className="bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-sm uppercase tracking-wider border-b border-gray-200 dark:border-gray-600">
@@ -107,7 +107,13 @@ export default function InventariTab({
               <th className="p-4 font-semibold">Ubicació / Assignació</th>
               <th className="p-4 font-semibold">Observacions</th>
               <th className="p-4 font-semibold">Actualitzat</th>
-              {role === 'admin' && <th className="p-4 font-semibold text-right">Accions</th>}
+              
+              {/* COLUMNA STICKY DE LA CABECERA */}
+              {role === 'admin' && (
+                <th className="p-4 font-semibold text-right sticky right-0 bg-gray-50 dark:bg-gray-700 z-10 border-l border-gray-200 dark:border-gray-600 shadow-[-10px_0_15px_-3px_rgba(0,0,0,0.05)]">
+                  Accions
+                </th>
+              )}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
@@ -117,7 +123,7 @@ export default function InventariTab({
               <tr><td colSpan={role === 'admin' ? "8" : "7"} className="text-center p-8 text-gray-500">No s'han trobat equips.</td></tr>
             ) : (
               ordinadors.map(ord => (
-                <tr key={ord.id} className={`hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${selectedIds.includes(ord.id) ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}>
+                <tr key={ord.id} className={`group hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${selectedIds.includes(ord.id) ? 'bg-blue-50/50 dark:bg-blue-900/20' : ''}`}>
                   {role === 'admin' && (
                     <td className="p-4 text-center"><input type="checkbox" className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 cursor-pointer" checked={selectedIds.includes(ord.id)} onChange={() => toggleSelectOne(ord.id)} /></td>
                   )}
@@ -130,15 +136,21 @@ export default function InventariTab({
                       <div className="text-xs text-blue-600 dark:text-blue-400 mt-1 font-medium bg-blue-50 dark:bg-blue-900/30 inline-block px-2 py-1 rounded">👤 {ord.nom_alumne || 'Sense nom'} {ord.classe_alumne ? `(${ord.classe_alumne})` : ''}</div>
                     )}
                   </td>
-                  <td className="p-4 text-gray-500 dark:text-gray-400 text-sm max-w-xs truncate">{ord.observacions || '-'}</td>
+                  
+                  {/* OBSERVACIONES RECORTADAS CON HOVER */}
+                  <td className="p-4 text-gray-500 dark:text-gray-400 text-sm max-w-[150px] xl:max-w-[250px] truncate" title={ord.observacions || ''}>
+                    {ord.observacions || '-'}
+                  </td>
+                  
                   <td className="p-4 text-gray-500 dark:text-gray-400 text-sm whitespace-nowrap"><Clock className="w-3 h-3 inline mr-1 opacity-50"/>{formatData(ord.data_modificacio)}</td>
                   
+                  {/* COLUMNA STICKY DE LAS ACCIONES */}
                   {role === 'admin' && (
-                    <td className="p-4 text-right space-x-3 whitespace-nowrap">
-                      {/* --- NOU BOTÓ DE L'HISTORIAL A CADA FILA --- */}
-                      <button onClick={() => obrirHistorial(ord.id, ord.sace)} className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300" title="Veure historial de canvis"><History className="w-5 h-5 inline"/></button>
-                      <button onClick={() => obrirModalEdicio(ord)} className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300" title="Editar"><Edit className="w-5 h-5 inline"/></button>
-                      <button onClick={() => handleEsborrarPortatil(ord.id, ord.sace)} className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300" title="Esborrar"><Trash2 className="w-5 h-5 inline"/></button>
+                    <td className={`p-4 text-right space-x-3 whitespace-nowrap sticky right-0 z-10 border-l border-gray-100 dark:border-gray-700 shadow-[-10px_0_15px_-3px_rgba(0,0,0,0.05)] transition-colors
+                      ${selectedIds.includes(ord.id) ? 'bg-blue-50 dark:bg-[#1a233a] group-hover:bg-blue-100 dark:group-hover:bg-[#1e293b]' : 'bg-white dark:bg-gray-800 group-hover:bg-gray-50 dark:group-hover:bg-gray-700'}`}>
+                      <button onClick={() => obrirHistorial(ord.id, ord.sace)} className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 p-1.5 rounded-md shadow-sm" title="Veure historial de canvis"><History className="w-4 h-4 inline"/></button>
+                      <button onClick={() => obrirModalEdicio(ord)} className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800/50 p-1.5 rounded-md shadow-sm" title="Editar"><Edit className="w-4 h-4 inline"/></button>
+                      <button onClick={() => handleEsborrarPortatil(ord.id, ord.sace)} className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 bg-red-50 dark:bg-red-900/30 border border-red-100 dark:border-red-800/50 p-1.5 rounded-md shadow-sm" title="Esborrar"><Trash2 className="w-4 h-4 inline"/></button>
                     </td>
                   )}
                 </tr>
