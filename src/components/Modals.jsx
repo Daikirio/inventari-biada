@@ -46,10 +46,20 @@ export default function Modals({
               <button onClick={() => setIsModalOpen(false)} className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"><X className="w-6 h-6"/></button>
             </div>
             <form onSubmit={handleDesarPortatil} className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1 dark:text-gray-300">SACE *</label>
-                <input required type="text" disabled={!!editingId} className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white disabled:opacity-50" value={formData.sace} onChange={e => setFormData({...formData, sace: e.target.value})} />
+              
+              {/* --- NOU BLOC AMB ELS DOS CAMPS: SACE I SN --- */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1 dark:text-gray-300">SACE</label>
+                  <input type="text" className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" value={formData.sace} onChange={e => setFormData({...formData, sace: e.target.value})} placeholder="Ex: 12345" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1 dark:text-gray-300">S/N (Número de Sèrie)</label>
+                  <input type="text" className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" value={formData.sn} onChange={e => setFormData({...formData, sn: e.target.value})} placeholder="Ex: PF12XYZ" />
+                </div>
               </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 -mt-2">* És obligatori omplir almenys el SACE o el S/N.</p>
+              
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-1 dark:text-gray-300">Marca *</label>
@@ -105,12 +115,12 @@ export default function Modals({
         </div>
       )}
 
-      {/* --- NOU MODAL: HISTORIAL DE CANVIS --- */}
+      {/* --- MODAL HISTORIAL --- */}
       {isHistoryModalOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-lg overflow-hidden border dark:border-gray-700 flex flex-col max-h-[80vh]">
             <div className="flex justify-between items-center p-6 border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-              <h2 className="text-xl font-bold dark:text-white flex items-center gap-2"><History className="w-5 h-5 text-blue-500"/> Historial SACE: {historySace}</h2>
+              <h2 className="text-xl font-bold dark:text-white flex items-center gap-2"><History className="w-5 h-5 text-blue-500"/> Historial ID: {historySace}</h2>
               <button onClick={() => setIsHistoryModalOpen(false)} className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"><X className="w-6 h-6"/></button>
             </div>
             

@@ -7,10 +7,10 @@ export default function InventariTab({
 
   const exportarA_CSV = () => {
     if (ordinadors.length === 0) return alert("No hi ha dades per exportar");
-    const headers = ["SACE", "Marca", "Model", "Estat", "Ubicacio", "Alumne", "Classe", "Observacions", "Ultima_Modificacio"];
+    const headers = ["SACE", "S/N", "Marca", "Model", "Estat", "Ubicacio", "Alumne", "Classe", "Observacions", "Ultima_Modificacio"];
     
     const rows = ordinadors.map(ord => [
-      `"${ord.sace || ''}"`, `"${ord.marca || ''}"`, `"${ord.model || ''}"`, `"${ord.estat || ''}"`,
+      `"${ord.sace || ''}"`, `"${ord.sn || ''}"`, `"${ord.marca || ''}"`, `"${ord.model || ''}"`, `"${ord.estat || ''}"`,
       `"${ord.ubicacio || ''}"`, `"${ord.nom_alumne || ''}"`, `"${ord.classe_alumne || ''}"`,
       `"${(ord.observacions || '').replace(/"/g, '""')}"`, `"${formatData(ord.data_modificacio)}"`
     ]);
@@ -47,7 +47,7 @@ export default function InventariTab({
               className="w-full sm:w-auto pl-9 pr-8 py-2 bg-transparent text-sm text-gray-700 dark:text-gray-300 focus:outline-none appearance-none cursor-pointer"
             >
               <option value="tots">Tots els camps</option>
-              <option value="sace">SACE</option>
+              <option value="sace_sn">SACE o S/N</option>
               <option value="marca_model">Marca i Model</option>
               <option value="estat">Estat</option>
               <option value="ubicacio_assignacio">Ubicació / Assignació</option>
@@ -101,14 +101,14 @@ export default function InventariTab({
                   <input type="checkbox" className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 cursor-pointer" onChange={toggleSelectAll} checked={selectedIds.length === ordinadors.length && ordinadors.length > 0} />
                 </th>
               )}
-              <th className="p-4 font-semibold">SACE</th>
+              {/* --- TITULO DE LA COLUMNA ACTUALIZADO --- */}
+              <th className="p-4 font-semibold">SACE / S/N</th>
               <th className="p-4 font-semibold">Marca i Model</th>
               <th className="p-4 font-semibold">Estat</th>
               <th className="p-4 font-semibold">Ubicació / Assignació</th>
               <th className="p-4 font-semibold">Observacions</th>
               <th className="p-4 font-semibold">Actualitzat</th>
               
-              {/* COLUMNA STICKY DE LA CABECERA */}
               {role === 'admin' && (
                 <th className="p-4 font-semibold text-right sticky right-0 bg-gray-50 dark:bg-gray-700 z-10 border-l border-gray-200 dark:border-gray-600 shadow-[-10px_0_15px_-3px_rgba(0,0,0,0.05)]">
                   Accions
@@ -127,7 +127,14 @@ export default function InventariTab({
                   {role === 'admin' && (
                     <td className="p-4 text-center"><input type="checkbox" className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 cursor-pointer" checked={selectedIds.includes(ord.id)} onChange={() => toggleSelectOne(ord.id)} /></td>
                   )}
-                  <td className="p-4 font-medium text-gray-900 dark:text-white">{ord.sace}</td>
+                  
+                  {/* --- DATOS DE SACE Y S/N VISIBLES --- */}
+                  <td className="p-4 font-medium text-gray-900 dark:text-white">
+                    {ord.sace && <div className="mb-0.5"><span className="text-xs font-bold text-gray-400 mr-1">SACE:</span>{ord.sace}</div>}
+                    {ord.sn && <div><span className="text-xs font-bold text-gray-400 mr-1">S/N:</span>{ord.sn}</div>}
+                    {!ord.sace && !ord.sn && <span className="text-gray-400">-</span>}
+                  </td>
+                  
                   <td className="p-4 text-gray-600 dark:text-gray-300">{ord.marca} {ord.model}</td>
                   <td className="p-4"><span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getBadgeColor(ord.estat)}`}>{ord.estat}</span></td>
                   <td className="p-4 text-gray-600 dark:text-gray-300">
@@ -137,20 +144,18 @@ export default function InventariTab({
                     )}
                   </td>
                   
-                  {/* OBSERVACIONES RECORTADAS CON HOVER */}
                   <td className="p-4 text-gray-500 dark:text-gray-400 text-sm max-w-[150px] xl:max-w-[250px] truncate" title={ord.observacions || ''}>
                     {ord.observacions || '-'}
                   </td>
                   
                   <td className="p-4 text-gray-500 dark:text-gray-400 text-sm whitespace-nowrap"><Clock className="w-3 h-3 inline mr-1 opacity-50"/>{formatData(ord.data_modificacio)}</td>
                   
-                  {/* COLUMNA STICKY DE LAS ACCIONES */}
                   {role === 'admin' && (
                     <td className={`p-4 text-right space-x-3 whitespace-nowrap sticky right-0 z-10 border-l border-gray-100 dark:border-gray-700 shadow-[-10px_0_15px_-3px_rgba(0,0,0,0.05)] transition-colors
                       ${selectedIds.includes(ord.id) ? 'bg-blue-50 dark:bg-[#1a233a] group-hover:bg-blue-100 dark:group-hover:bg-[#1e293b]' : 'bg-white dark:bg-gray-800 group-hover:bg-gray-50 dark:group-hover:bg-gray-700'}`}>
-                      <button onClick={() => obrirHistorial(ord.id, ord.sace)} className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 p-1.5 rounded-md shadow-sm" title="Veure historial de canvis"><History className="w-4 h-4 inline"/></button>
+                      <button onClick={() => obrirHistorial(ord.id, ord.sace, ord.sn)} className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 p-1.5 rounded-md shadow-sm" title="Veure historial de canvis"><History className="w-4 h-4 inline"/></button>
                       <button onClick={() => obrirModalEdicio(ord)} className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800/50 p-1.5 rounded-md shadow-sm" title="Editar"><Edit className="w-4 h-4 inline"/></button>
-                      <button onClick={() => handleEsborrarPortatil(ord.id, ord.sace)} className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 bg-red-50 dark:bg-red-900/30 border border-red-100 dark:border-red-800/50 p-1.5 rounded-md shadow-sm" title="Esborrar"><Trash2 className="w-4 h-4 inline"/></button>
+                      <button onClick={() => handleEsborrarPortatil(ord.id, ord.sace || ord.sn)} className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 bg-red-50 dark:bg-red-900/30 border border-red-100 dark:border-red-800/50 p-1.5 rounded-md shadow-sm" title="Esborrar"><Trash2 className="w-4 h-4 inline"/></button>
                     </td>
                   )}
                 </tr>
