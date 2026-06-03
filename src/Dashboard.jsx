@@ -19,7 +19,8 @@ export default function Dashboard({ session }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [novaOpcio, setNovaOpcio] = useState({ categoria: 'marca', valor: '' });
   
-  const valorsInicialsForm = { sace: '', marca: '', model: '', estat: '', ubicacio: '', observacions: '', nom_alumne: '', classe_alumne: '' };
+  // AFEGIT EL CAMP SN ALS VALORS INICIALS
+  const valorsInicialsForm = { sace: '', sn: '', marca: '', model: '', estat: '', ubicacio: '', observacions: '', nom_alumne: '', classe_alumne: '' };
   const [formData, setFormData] = useState(valorsInicialsForm);
   const [editingId, setEditingId] = useState(null); 
 
@@ -28,7 +29,6 @@ export default function Dashboard({ session }) {
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [bulkData, setBulkData] = useState({ camp: 'estat', valor: '' });
 
-  // --- ESTATS PER L'HISTORIAL ---
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [historyData, setHistoryData] = useState([]);
   const [historySace, setHistorySace] = useState('');
@@ -88,6 +88,7 @@ export default function Dashboard({ session }) {
     if (!searchTerm) return true;
     const searchLower = searchTerm.toLowerCase();
     const strSace = (ord.sace || '').toLowerCase();
+    const strSn = (ord.sn || '').toLowerCase();
     const strMarcaModel = `${ord.marca || ''} ${ord.model || ''}`.toLowerCase();
     const strEstat = (ord.estat || '').toLowerCase();
     const strUbicacioAssignacio = `${ord.ubicacio || ''} ${ord.nom_alumne || ''} ${ord.classe_alumne || ''}`.toLowerCase();
@@ -95,13 +96,13 @@ export default function Dashboard({ session }) {
     const strActualitzat = formatData(ord.data_modificacio).toLowerCase();
 
     switch (searchField) {
-      case 'sace': return strSace.includes(searchLower);
+      case 'sace_sn': return strSace.includes(searchLower) || strSn.includes(searchLower);
       case 'marca_model': return strMarcaModel.includes(searchLower);
       case 'estat': return strEstat.includes(searchLower);
       case 'ubicacio_assignacio': return strUbicacioAssignacio.includes(searchLower);
       case 'observacions': return strObservacions.includes(searchLower);
       case 'actualitzat': return strActualitzat.includes(searchLower);
-      default: return (strSace.includes(searchLower) || strMarcaModel.includes(searchLower) || strEstat.includes(searchLower) || strUbicacioAssignacio.includes(searchLower) || strObservacions.includes(searchLower) || strActualitzat.includes(searchLower));
+      default: return (strSace.includes(searchLower) || strSn.includes(searchLower) || strMarcaModel.includes(searchLower) || strEstat.includes(searchLower) || strUbicacioAssignacio.includes(searchLower) || strObservacions.includes(searchLower) || strActualitzat.includes(searchLower));
     }
   });
 
@@ -120,11 +121,19 @@ export default function Dashboard({ session }) {
   };
 
   const obrirModalNou = () => { setFormData(valorsInicialsForm); setEditingId(null); setIsModalOpen(true); };
-  const obrirModalEdicio = (ord) => { setFormData({ sace: ord.sace, marca: ord.marca, model: ord.model, estat: ord.estat, ubicacio: ord.ubicacio, observacions: ord.observacions || '', nom_alumne: ord.nom_alumne || '', classe_alumne: ord.classe_alumne || '' }); setEditingId(ord.id); setIsModalOpen(true); };
+  
+  const obrirModalEdicio = (ord) => { 
+    setFormData({ 
+      sace: ord.sace || '', 
+      sn: ord.sn || '', 
+      marca: ord.marca, model: ord.model, estat: ord.estat, ubicacio: ord.ubicacio, observacions: ord.observacions || '', nom_alumne: ord.nom_alumne || '', classe_alumne: ord.classe_alumne || '' 
+    }); 
+    setEditingId(ord.id); 
+    setIsModalOpen(true); 
+  };
 
-  // --- FUNCIÓ PER OBRIR L'HISTORIAL ---
-  const obrirHistorial = async (id, sace) => {
-    setHistorySace(sace);
+  const obrirHistorial = async (id, sace, sn) => {
+    setHistorySace(sace || sn || 'Sense ID');
     setHistoryData([]);
     setIsHistoryModalOpen(true);
     setLoadingHistory(true);
@@ -136,8 +145,17 @@ export default function Dashboard({ session }) {
   const handleDesarPortatil = async (e) => {
     e.preventDefault();
     
-    // Recuperem la lògica de buidar alumne si l'estat no és Assignat
+    // COMPROVACIÓ DE SACE O S/N
+    if (!formData.sace.trim() && !formData.sn.trim()) {
+      return alert('❌ ERROR: Has d\'introduir almenys el SACE o el Número de Sèrie (S/N).');
+    }
+
     const dadesAGuardar = { ...formData };
+    
+    // Converteix els strings buits a NULL perquè l'índex UNIQUE funcioni correctament
+    if (dadesAGuardar.sace.trim() === '') dadesAGuardar.sace = null;
+    if (dadesAGuardar.sn.trim() === '') dadesAGuardar.sn = null;
+
     if (dadesAGuardar.estat !== 'Assignat') {
       dadesAGuardar.nom_alumne = null;
       dadesAGuardar.classe_alumne = null;
@@ -146,14 +164,14 @@ export default function Dashboard({ session }) {
     if (editingId) { 
       const { error } = await supabase.from('ordinadors').update(dadesAGuardar).eq('id', editingId); 
       if (error) {
-        alert('❌ Error de base de dades al modificar: ' + error.message);
-        return; // Atura el procés perquè no es tanqui la finestra
+        if (error.message.includes('unique constraint')) return alert('❌ Error: Aquest SACE o S/N ja està registrat en un altre equip.');
+        return alert('❌ Error de base de dades: ' + error.message);
       }
     } else { 
       const { error } = await supabase.from('ordinadors').insert([{ ...dadesAGuardar, creat_per: session.user.id }]); 
       if (error) {
-        alert('❌ Error de base de dades al crear: ' + error.message);
-        return;
+        if (error.message.includes('unique constraint')) return alert('❌ Error: Aquest SACE o S/N ja està registrat en un altre equip.');
+        return alert('❌ Error de base de dades: ' + error.message);
       }
     }
     
@@ -194,7 +212,6 @@ export default function Dashboard({ session }) {
         )}
         {activeTab === 'configuracio' && <ConfigTab handleAfegirOpcio={handleAfegirOpcio} novaOpcio={novaOpcio} setNovaOpcio={setNovaOpcio} opcions={opcions} handleEsborrarOpcio={handleEsborrarOpcio} />}
         
-        {/* --- PESTANYA USUARIS --- */}
         {activeTab === 'usuaris' && role === 'admin' && (
           <div className="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors">
             <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-6 border-b dark:border-gray-700 pb-2 flex items-center gap-2"><Users className="text-blue-500"/> Gestió d'Usuaris</h2>
@@ -235,7 +252,6 @@ export default function Dashboard({ session }) {
           </div>
         )}
 
-        {/* --- PESTANYA AJUDA (ARA COMPLETÍSSIMA!) --- */}
         {activeTab === 'ajuda' && (
           <div className="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors max-w-4xl mx-auto">
             <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-6 border-b dark:border-gray-700 pb-2 flex items-center gap-2">
