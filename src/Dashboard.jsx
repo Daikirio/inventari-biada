@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from './supabase';
-import { Users, HelpCircle, Search, ShieldCheck } from 'lucide-react';
+import { Users, HelpCircle, Search, ShieldCheck, AlertTriangle } from 'lucide-react';
 
 import Navbar from './components/Navbar';
 import InventariTab from './components/InventariTab';
@@ -19,7 +19,6 @@ export default function Dashboard({ session }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [novaOpcio, setNovaOpcio] = useState({ categoria: 'marca', valor: '' });
   
-  // AFEGIT EL CAMP SN ALS VALORS INICIALS
   const valorsInicialsForm = { sace: '', sn: '', marca: '', model: '', estat: '', ubicacio: '', observacions: '', nom_alumne: '', classe_alumne: '' };
   const [formData, setFormData] = useState(valorsInicialsForm);
   const [editingId, setEditingId] = useState(null); 
@@ -33,6 +32,11 @@ export default function Dashboard({ session }) {
   const [historyData, setHistoryData] = useState([]);
   const [historySace, setHistorySace] = useState('');
   const [loadingHistory, setLoadingHistory] = useState(false);
+
+  // --- NOU: ESTATS PEL POP-UP D'AVÍS DE DUPLICATS ---
+  const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState(false);
+  const [conflictingEquip, setConflictingEquip] = useState(null);
+  const [pendingData, setPendingData] = useState(null);
 
   const [theme, setTheme] = useState(() => {
     if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) return 'dark';
@@ -142,17 +146,15 @@ export default function Dashboard({ session }) {
     setLoadingHistory(false);
   };
 
+  // --- NOVA LÒGICA PEL BOTÓ DE GUARDAR (INTEL·LIGENT) ---
   const handleDesarPortatil = async (e) => {
     e.preventDefault();
     
-    // COMPROVACIÓ DE SACE O S/N
     if (!formData.sace.trim() && !formData.sn.trim()) {
       return alert('❌ ERROR: Has d\'introduir almenys el SACE o el Número de Sèrie (S/N).');
     }
 
     const dadesAGuardar = { ...formData };
-    
-    // Converteix els strings buits a NULL perquè l'índex UNIQUE funcioni correctament
     if (dadesAGuardar.sace.trim() === '') dadesAGuardar.sace = null;
     if (dadesAGuardar.sn.trim() === '') dadesAGuardar.sn = null;
 
@@ -161,22 +163,66 @@ export default function Dashboard({ session }) {
       dadesAGuardar.classe_alumne = null;
     }
 
-    if (editingId) { 
-      const { error } = await supabase.from('ordinadors').update(dadesAGuardar).eq('id', editingId); 
-      if (error) {
-        if (error.message.includes('unique constraint')) return alert('❌ Error: Aquest SACE o S/N ja està registrat en un altre equip.');
-        return alert('❌ Error de base de dades: ' + error.message);
+    // 1. Buscador silenciós de duplicats
+    let orConditions = [];
+    if (dadesAGuardar.sace) orConditions.push(`sace.eq."${dadesAGuardar.sace}"`);
+    if (dadesAGuardar.sn) orConditions.push(`sn.eq."${dadesAGuardar.sn}"`);
+
+    if (orConditions.length > 0) {
+      let query = supabase.from('ordinadors').select('*').or(orConditions.join(','));
+      
+      // Si estem editant un equip existent, no ens busquem a nosaltres mateixos
+      if (editingId) {
+        query = query.neq('id', editingId);
       }
+
+      const { data: duplicats } = await query;
+
+      if (duplicats && duplicats.length > 0) {
+        // AIRE! Hem trobat un portàtil repetit. Pausem el procés i obrim el Pop-Up.
+        setConflictingEquip(duplicats[0]);
+        setPendingData(dadesAGuardar);
+        setIsDuplicateModalOpen(true);
+        return; 
+      }
+    }
+
+    // 2. Si no hi ha cap duplicat, ho guardem amb normalitat
+    await executarGuardatReal(dadesAGuardar, editingId);
+  };
+
+  // Funció separada per fer l'enviament real a la base de dades
+  const executarGuardatReal = async (dades, idEdit) => {
+    if (idEdit) { 
+      const { error } = await supabase.from('ordinadors').update(dades).eq('id', idEdit); 
+      if (error) return alert('❌ Error de base de dades: ' + error.message);
     } else { 
-      const { error } = await supabase.from('ordinadors').insert([{ ...dadesAGuardar, creat_per: session.user.id }]); 
-      if (error) {
-        if (error.message.includes('unique constraint')) return alert('❌ Error: Aquest SACE o S/N ja està registrat en un altre equip.');
-        return alert('❌ Error de base de dades: ' + error.message);
-      }
+      const { error } = await supabase.from('ordinadors').insert([{ ...dades, creat_per: session.user.id }]); 
+      if (error) return alert('❌ Error de base de dades: ' + error.message);
     }
     
     setIsModalOpen(false); 
     carregarDades();
+  };
+
+  // --- LES ACCIONS DEL POP-UP ---
+  const handleReemplacarDuplicat = async () => {
+    // 1. Esborrem el portàtil vell que ens feia nosa
+    await supabase.from('ordinadors').delete().eq('id', conflictingEquip.id);
+    
+    // 2. Guardem el nostre (que ara ja té via lliure)
+    await executarGuardatReal(pendingData, editingId);
+
+    // 3. Tanquem el Pop-Up
+    setIsDuplicateModalOpen(false);
+    setConflictingEquip(null);
+    setPendingData(null);
+  };
+
+  const cancelarReemplac = () => {
+    setIsDuplicateModalOpen(false);
+    setConflictingEquip(null);
+    setPendingData(null);
   };
 
   const handleEsborrarPortatil = async (id) => {
@@ -200,7 +246,7 @@ export default function Dashboard({ session }) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-sans transition-colors duration-300">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-sans transition-colors duration-300 relative">
       <Navbar activeTab={activeTab} setActiveTab={setActiveTab} role={role} theme={theme} toggleTheme={toggleTheme} onSignOut={() => supabase.auth.signOut()} />
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -301,6 +347,41 @@ export default function Dashboard({ session }) {
         isModalOpen={isModalOpen} setIsModalOpen={setIsModalOpen} editingId={editingId} formData={formData} setFormData={setFormData} handleDesarPortatil={handleDesarPortatil}
         isHistoryModalOpen={isHistoryModalOpen} setIsHistoryModalOpen={setIsHistoryModalOpen} historyData={historyData} historySace={historySace} loadingHistory={loadingHistory}
       />
+
+      {/* --- POP-UP SUPERIOR D'ALERTA DE DUPLICATS --- */}
+      {isDuplicateModalOpen && conflictingEquip && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[200] p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md overflow-hidden border-2 border-red-500">
+            <div className="bg-red-50 dark:bg-red-900/20 p-6 border-b border-red-100 dark:border-red-800/50 flex items-start gap-4">
+              <div className="bg-red-100 dark:bg-red-800/50 p-2 rounded-full text-red-600 dark:text-red-400">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-red-700 dark:text-red-400">Equip Duplicat Detectat!</h2>
+                <p className="text-sm text-red-600 dark:text-red-300 mt-1">El SACE o S/N que intentes posar ja està assignat a un altre equip de la base de dades.</p>
+              </div>
+            </div>
+
+            <div className="p-6 bg-gray-50 dark:bg-gray-800/50 space-y-3">
+              <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Dades de l'equip antic que es perdrà:</h3>
+              <div className="bg-white dark:bg-gray-700 p-4 rounded-lg border border-gray-200 dark:border-gray-600 shadow-sm text-sm">
+                <p className="text-gray-800 dark:text-gray-200"><strong className="text-gray-500 dark:text-gray-400">SACE:</strong> {conflictingEquip.sace || '-'}</p>
+                <p className="text-gray-800 dark:text-gray-200"><strong className="text-gray-500 dark:text-gray-400">S/N:</strong> {conflictingEquip.sn || '-'}</p>
+                <p className="text-gray-800 dark:text-gray-200 mt-2"><strong className="text-gray-500 dark:text-gray-400">Model:</strong> {conflictingEquip.marca} {conflictingEquip.model}</p>
+                <p className="text-gray-800 dark:text-gray-200"><strong className="text-gray-500 dark:text-gray-400">Aula:</strong> {conflictingEquip.ubicacio}</p>
+                <p className="text-gray-800 dark:text-gray-200 mt-2"><strong className="text-gray-500 dark:text-gray-400">Estat actual:</strong> <span className="px-2 py-0.5 rounded text-xs border border-gray-300 dark:border-gray-500 bg-gray-100 dark:bg-gray-600">{conflictingEquip.estat}</span></p>
+              </div>
+              <p className="text-sm font-medium text-gray-800 dark:text-gray-200 mt-4 text-center">Vols esborrar l'equip antic i guardar el nou al seu lloc?</p>
+            </div>
+
+            <div className="p-4 border-t dark:border-gray-700 flex justify-end gap-3 bg-white dark:bg-gray-800">
+              <button onClick={cancelarReemplac} className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg font-medium transition-colors">Cancel·lar</button>
+              <button onClick={handleReemplacarDuplicat} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium shadow-sm transition-colors flex items-center gap-2">Reemplaçar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
