@@ -4,6 +4,7 @@ import { Users, HelpCircle, Search, ShieldCheck, AlertTriangle } from 'lucide-re
 
 import Navbar from './components/Navbar';
 import InventariTab from './components/InventariTab';
+import EsquemaTab from './components/EsquemaTab'; // NOU: Component de l'Esquema Visual
 import ConfigTab from './components/ConfigTab';
 import Modals from './components/Modals';
 
@@ -33,7 +34,6 @@ export default function Dashboard({ session }) {
   const [historySace, setHistorySace] = useState('');
   const [loadingHistory, setLoadingHistory] = useState(false);
 
-  // --- NOU: ESTATS PEL POP-UP D'AVÍS DE DUPLICATS ---
   const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState(false);
   const [conflictingEquip, setConflictingEquip] = useState(null);
   const [pendingData, setPendingData] = useState(null);
@@ -146,7 +146,6 @@ export default function Dashboard({ session }) {
     setLoadingHistory(false);
   };
 
-  // --- NOVA LÒGICA PEL BOTÓ DE GUARDAR (INTEL·LIGENT) ---
   const handleDesarPortatil = async (e) => {
     e.preventDefault();
     
@@ -163,7 +162,6 @@ export default function Dashboard({ session }) {
       dadesAGuardar.classe_alumne = null;
     }
 
-    // 1. Buscador silenciós de duplicats
     let orConditions = [];
     if (dadesAGuardar.sace) orConditions.push(`sace.eq."${dadesAGuardar.sace}"`);
     if (dadesAGuardar.sn) orConditions.push(`sn.eq."${dadesAGuardar.sn}"`);
@@ -171,7 +169,6 @@ export default function Dashboard({ session }) {
     if (orConditions.length > 0) {
       let query = supabase.from('ordinadors').select('*').or(orConditions.join(','));
       
-      // Si estem editant un equip existent, no ens busquem a nosaltres mateixos
       if (editingId) {
         query = query.neq('id', editingId);
       }
@@ -179,7 +176,6 @@ export default function Dashboard({ session }) {
       const { data: duplicats } = await query;
 
       if (duplicats && duplicats.length > 0) {
-        // AIRE! Hem trobat un portàtil repetit. Pausem el procés i obrim el Pop-Up.
         setConflictingEquip(duplicats[0]);
         setPendingData(dadesAGuardar);
         setIsDuplicateModalOpen(true);
@@ -187,11 +183,9 @@ export default function Dashboard({ session }) {
       }
     }
 
-    // 2. Si no hi ha cap duplicat, ho guardem amb normalitat
     await executarGuardatReal(dadesAGuardar, editingId);
   };
 
-  // Funció separada per fer l'enviament real a la base de dades
   const executarGuardatReal = async (dades, idEdit) => {
     if (idEdit) { 
       const { error } = await supabase.from('ordinadors').update(dades).eq('id', idEdit); 
@@ -205,15 +199,9 @@ export default function Dashboard({ session }) {
     carregarDades();
   };
 
-  // --- LES ACCIONS DEL POP-UP ---
   const handleReemplacarDuplicat = async () => {
-    // 1. Esborrem el portàtil vell que ens feia nosa
     await supabase.from('ordinadors').delete().eq('id', conflictingEquip.id);
-    
-    // 2. Guardem el nostre (que ara ja té via lliure)
     await executarGuardatReal(pendingData, editingId);
-
-    // 3. Tanquem el Pop-Up
     setIsDuplicateModalOpen(false);
     setConflictingEquip(null);
     setPendingData(null);
@@ -256,6 +244,12 @@ export default function Dashboard({ session }) {
             selectedIds={selectedIds} setSelectedIds={setSelectedIds} setIsBulkModalOpen={setIsBulkModalOpen} handleBulkDelete={handleBulkDelete} obrirModalNou={obrirModalNou} obrirModalEdicio={obrirModalEdicio} handleEsborrarPortatil={handleEsborrarPortatil} formatData={formatData} getBadgeColor={getBadgeColor} obrirHistorial={obrirHistorial}
           />
         )}
+        
+        {/* --- NOU APARTAT D'ESQUEMA --- */}
+        {activeTab === 'esquema' && (
+          <EsquemaTab ordinadors={ordinadors} />
+        )}
+
         {activeTab === 'configuracio' && <ConfigTab handleAfegirOpcio={handleAfegirOpcio} novaOpcio={novaOpcio} setNovaOpcio={setNovaOpcio} opcions={opcions} handleEsborrarOpcio={handleEsborrarOpcio} />}
         
         {activeTab === 'usuaris' && role === 'admin' && (

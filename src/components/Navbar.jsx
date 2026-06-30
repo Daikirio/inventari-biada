@@ -1,4 +1,4 @@
-import { Laptop, Settings, Users, HelpCircle, Sun, Moon, LogOut } from 'lucide-react';
+import { Laptop, Network, Settings, Users, HelpCircle, Sun, Moon, LogOut } from 'lucide-react';
 
 export default function Navbar({ activeTab, setActiveTab, role, theme, toggleTheme, onSignOut }) {
   return (
@@ -12,6 +12,10 @@ export default function Navbar({ activeTab, setActiveTab, role, theme, toggleThe
           
           <div className="flex items-center space-x-1 md:space-x-4">
             <button onClick={() => setActiveTab('inventari')} className={`px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2 ${activeTab === 'inventari' ? 'bg-blue-50 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400' : 'hover:bg-gray-100 dark:hover:bg-gray-700'}`}><Laptop className="w-4 h-4" /> <span className="hidden sm:inline">Inventari</span></button>
+            
+            {/* --- NOU BOTÓ D'ESQUEMA --- */}
+            <button onClick={() => setActiveTab('esquema')} className={`px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2 ${activeTab === 'esquema' ? 'bg-blue-50 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400' : 'hover:bg-gray-100 dark:hover:bg-gray-700'}`}><Network className="w-4 h-4" /> <span className="hidden sm:inline">Esquema</span></button>
+
             {role === 'admin' && (
               <>
                 <button onClick={() => setActiveTab('configuracio')} className={`px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2 ${activeTab === 'configuracio' ? 'bg-blue-50 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400' : 'hover:bg-gray-100 dark:hover:bg-gray-700'}`}><Settings className="w-4 h-4" /> <span className="hidden sm:inline">Configuració</span></button>
