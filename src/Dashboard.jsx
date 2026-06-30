@@ -247,7 +247,21 @@ export default function Dashboard({ session }) {
         
         {/* --- NOU APARTAT D'ESQUEMA --- */}
         {activeTab === 'esquema' && (
-          <EsquemaTab ordinadors={ordinadors} />
+          <EsquemaTab 
+            ordinadors={ordinadors} 
+            onSububicacioClick={(nomSububicacio) => {
+              // Si la sububicació no està buida, filtrem
+              if (nomSububicacio !== 'Sense sub-ubicació (Observacions buides)') {
+                setSearchField('observacions');
+                setSearchTerm(nomSububicacio);
+              } else {
+                setSearchField('tots');
+                setSearchTerm('');
+              }
+              // I canviem a la pestanya d'inventari
+              setActiveTab('inventari');
+            }}
+          />
         )}
 
         {activeTab === 'configuracio' && <ConfigTab handleAfegirOpcio={handleAfegirOpcio} novaOpcio={novaOpcio} setNovaOpcio={setNovaOpcio} opcions={opcions} handleEsborrarOpcio={handleEsborrarOpcio} />}
@@ -334,6 +348,7 @@ export default function Dashboard({ session }) {
             </div>
           </div>
         )}
+        
       </main>
 
       <Modals 

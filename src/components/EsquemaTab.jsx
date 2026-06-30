@@ -1,20 +1,18 @@
 import { useMemo, useState } from 'react';
 import { Database, MapPin, Tag, ChevronDown, ChevronRight, Laptop } from 'lucide-react';
 
-export default function EsquemaTab({ ordinadors }) {
+export default function EsquemaTab({ ordinadors, onSububicacioClick }) {
   const [expandedLocs, setExpandedLocs] = useState({});
 
-  // Funció per netejar el text (ignora majúscules, accents i espais extra)
   const normalitzarText = (text) => {
     if (!text) return 'Sense sub-ubicació (Observacions buides)';
     return text.toString()
       .toLowerCase()
       .trim()
-      .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Treu els accents
-      .replace(/\s+/g, ' '); // Converteix múltiples espais en un de sol
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "") 
+      .replace(/\s+/g, ' '); 
   };
 
-  // Motor d'agrupació de dades
   const esquema = useMemo(() => {
     const mapa = {};
 
@@ -22,7 +20,6 @@ export default function EsquemaTab({ ordinadors }) {
       const ubicacioReal = ord.ubicacio || 'Sense Ubicació';
       const clauSububicacio = normalitzarText(ord.observacions);
       
-      // Guardem el nom original bonic per mostrar-lo, però usem la clau neta per agrupar
       const nomSububicacioMostrar = ord.observacions ? ord.observacions.trim() : 'Sense sub-ubicació (Observacions buides)';
 
       if (!mapa[ubicacioReal]) {
@@ -50,7 +47,6 @@ export default function EsquemaTab({ ordinadors }) {
     setExpandedLocs(prev => ({ ...prev, [loc]: !prev[loc] }));
   };
 
-  // Ordenem les ubicacions alfabèticament
   const ubicacionsOrdenades = Object.keys(esquema).sort();
 
   return (
@@ -61,7 +57,7 @@ export default function EsquemaTab({ ordinadors }) {
         </div>
         <div>
           <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Esquema de Distribució</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Mapa estructural de les ubicacions i sub-ubicacions (extretes de les observacions).</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Mapa estructural de les ubicacions i sub-ubicacions. Fes clic a una sub-ubicació per veure'n els equips.</p>
         </div>
       </div>
 
@@ -72,7 +68,6 @@ export default function EsquemaTab({ ordinadors }) {
           {ubicacionsOrdenades.map(ubicacio => (
             <div key={ubicacio} className="bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
               
-              {/* CAPÇALERA DE LA UBICACIÓ (TAULA) */}
               <div 
                 className="bg-white dark:bg-gray-700/50 p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
                 onClick={() => toggleLoc(ubicacio)}
@@ -87,21 +82,28 @@ export default function EsquemaTab({ ordinadors }) {
                 </div>
               </div>
 
-              {/* LLISTA DE SUB-UBICACIONS */}
               {expandedLocs[ubicacio] && (
                 <div className="p-4 space-y-3 bg-gray-50/50 dark:bg-gray-800/20">
                   {Object.values(esquema[ubicacio].sububicacions).sort((a,b) => b.total - a.total).map((sub, idx) => (
-                    <div key={idx} className="flex justify-between items-center bg-white dark:bg-gray-700 p-3 rounded-lg border border-gray-100 dark:border-gray-600 shadow-sm">
+                    
+                    /* --- AQUEST DIV ARA ÉS CLICABLE --- */
+                    <div 
+                      key={idx} 
+                      onClick={() => onSububicacioClick(sub.nomOriginal)}
+                      title="Veure aquests equips a l'Inventari"
+                      className="flex justify-between items-center bg-white dark:bg-gray-700 p-3 rounded-lg border border-gray-100 dark:border-gray-600 shadow-sm cursor-pointer hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-md transition-all group"
+                    >
                       <div className="flex items-start gap-2 max-w-[80%]">
-                        <Tag className="w-4 h-4 text-purple-500 mt-0.5 flex-shrink-0" />
-                        <span className="text-sm font-medium text-gray-700 dark:text-gray-200 line-clamp-2" title={sub.nomOriginal}>
+                        <Tag className="w-4 h-4 text-purple-500 mt-0.5 flex-shrink-0 group-hover:text-blue-500 transition-colors" />
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-200 line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                           {sub.nomOriginal}
                         </span>
                       </div>
-                      <div className="bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300 font-semibold px-2.5 py-1 rounded-md text-xs whitespace-nowrap flex-shrink-0">
+                      <div className="bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300 font-semibold px-2.5 py-1 rounded-md text-xs whitespace-nowrap flex-shrink-0 group-hover:bg-blue-100 group-hover:text-blue-800 dark:group-hover:bg-blue-900/40 dark:group-hover:text-blue-300 transition-colors">
                         {sub.total} equips
                       </div>
                     </div>
+
                   ))}
                 </div>
               )}
